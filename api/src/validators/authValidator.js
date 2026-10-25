@@ -38,4 +38,18 @@ const updateProfileRules = [
     .trim()
     .isLength({ max: 500 }).withMessage('Đường dẫn ảnh tối đa 500 ký tự'),
 ];
-module.exports = { registerRules, loginRules, updateProfileRules };
+const changePasswordRules = [
+  body('currentPassword')
+    .notEmpty().withMessage('Vui lòng nhập mật khẩu hiện tại'),
+
+  body('newPassword')
+    .isLength({ min: 6 }).withMessage('Mật khẩu mới tối thiểu 6 ký tự')
+    .custom((value, { req }) => value !== req.body.currentPassword)
+    .withMessage('Mật khẩu mới phải khác mật khẩu hiện tại'),
+];
+module.exports = {
+  registerRules,
+  loginRules,
+  updateProfileRules,
+  changePasswordRules,
+};

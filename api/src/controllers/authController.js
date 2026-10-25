@@ -67,4 +67,24 @@ const updateMe = async (req, res, next) => {
     next(err);
   }
 };
-module.exports = { register, login, getMe, updateMe };
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // req.user không có passwordHash nên phải lấy lại từ DB
+    const user = await User.findById(req.user._id).select('+passwordHash');
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ message: 'Đổi mật khẩu thành công' });
+  } catch (err) {
+    next(err);
+  }
+};
+module.exports = { register, login, getMe, updateMe, changePassword };
