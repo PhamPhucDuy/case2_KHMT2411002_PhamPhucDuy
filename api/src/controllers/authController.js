@@ -46,5 +46,25 @@ const login = async (req, res, next) => {
 const getMe = (req, res) => {
   res.json({ user: req.user });
 };
+const updateMe = async (req, res, next) => {
+  try {
+    // Chỉ lấy đúng các trường được phép sửa
+    const updates = {};
+    if (req.body.fullName !== undefined) updates.fullName = req.body.fullName;
+    if (req.body.avatarUrl !== undefined) updates.avatarUrl = req.body.avatarUrl;
 
-module.exports = { register, login, getMe };
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'Không có thông tin nào để cập nhật' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.json({ message: 'Cập nhật thông tin thành công', user });
+  } catch (err) {
+    next(err);
+  }
+};
+module.exports = { register, login, getMe, updateMe };

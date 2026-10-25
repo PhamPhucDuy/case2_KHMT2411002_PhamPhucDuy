@@ -26,5 +26,16 @@ const loginRules = [
   body('password')
     .notEmpty().withMessage('Mật khẩu không được để trống'),
 ];
+const updateProfileRules = [
+  body('fullName')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Họ tên không được để trống')
+    .isLength({ max: 100 }).withMessage('Họ tên tối đa 100 ký tự'),
 
-module.exports = { registerRules, loginRules };
+  body('avatarUrl')
+    .optional()
+    .trim()
+    .isLength({ max: 500 }).withMessage('Đường dẫn ảnh tối đa 500 ký tự'),
+];
+module.exports = { registerRules, loginRules, updateProfileRules };
