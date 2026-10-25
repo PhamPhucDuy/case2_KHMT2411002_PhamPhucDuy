@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const register = async (req, res, next) => {
@@ -19,4 +20,31 @@ const register = async (req, res, next) => {
   }
 };
 
-module.exports = { register };
+const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    // passwordHash mặc định bị ẩn (select: false) nên phải lấy rõ ràng
+    const user = await User.findOne({ email }).select('+passwordHash');
+
+    // Cùng một thông báo cho "sai email" và "sai mật khẩu"
+    const isMatch = user && (await bcrypt.compare(password, user.passwordHash));
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    });
+
+    return res.json({ message: 'Đăng nhập thành công', token, user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getMe = (req, res) => {
+  res.json({ user: req.user });
+};
+
+module.exports = { register, login, getMe };
