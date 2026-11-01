@@ -159,5 +159,33 @@ const updateTask = async (req, res, next) => {
     next(err);
   }
 };
+const updateTaskStatus = async (req, res, next) => {
+  try {
+    const { task, role } = await getTaskAccess(req.params.id, req.user._id);
 
-module.exports = { createTask, listTasks, getTask, updateTask };
+    // Không có quyền xem thì coi như không tồn tại
+    if (!task || !can(role, 'view')) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+    if (!can(role, 'changeStatus')) {
+      return res
+        .status(403)
+        .json({ message: 'Bạn không có quyền đổi trạng thái công việc này' });
+    }
+
+    task.status = req.body.status;
+    await task.save();
+
+    return res.json({ message: 'Cập nhật trạng thái thành công', task });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  createTask,
+  listTasks,
+  getTask,
+  updateTask,
+  updateTaskStatus,
+};

@@ -105,9 +105,15 @@ const updateTaskRules = [
     .isIn(['low', 'medium', 'high'])
     .withMessage('Mức độ ưu tiên phải là low, medium hoặc high'),
 ];
+const updateStatusRules = [
+  body('status')
+    .isIn(['todo', 'in_progress', 'completed'])
+    .withMessage('Trạng thái phải là todo, in_progress hoặc completed'),
+];
 module.exports = {
   createTaskRules,
   listTaskRules,
   taskIdRules,
   updateTaskRules,
+  updateStatusRules,
 };

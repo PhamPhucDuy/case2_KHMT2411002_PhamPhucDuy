@@ -4,12 +4,14 @@ const {
   listTasks,
   getTask,
   updateTask,
+  updateTaskStatus,
 } = require('../controllers/taskController');
 const {
   createTaskRules,
   listTaskRules,
   taskIdRules,
   updateTaskRules,
+  updateStatusRules,
 } = require('../validators/taskValidator');
 const validate = require('../middleware/validateMiddleware');
 const { protect } = require('../middleware/authMiddleware');
@@ -23,5 +25,12 @@ router.get('/', listTaskRules, validate, listTasks);
 router.post('/', createTaskRules, validate, createTask);
 router.get('/:id', taskIdRules, validate, getTask);
 router.put('/:id', taskIdRules, updateTaskRules, validate, updateTask);
+router.patch(
+  '/:id/status',
+  taskIdRules,
+  updateStatusRules,
+  validate,
+  updateTaskStatus
+);
 
 module.exports = router;
