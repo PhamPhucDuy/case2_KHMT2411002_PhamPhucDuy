@@ -1,4 +1,4 @@
-const { body, query } = require('express-validator');
+const { body, query, param } = require('express-validator');
 
 const createTaskRules = [
   body('title')
@@ -75,4 +75,7 @@ const listTaskRules = [
     .isIn(['asc', 'desc'])
     .withMessage('order phải là asc hoặc desc'),
 ];
-module.exports = { createTaskRules, listTaskRules };
+const taskIdRules = [
+  param('id').isMongoId().withMessage('Mã công việc không hợp lệ'),
+];
+module.exports = { createTaskRules, listTaskRules, taskIdRules };

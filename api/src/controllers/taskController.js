@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const TaskShare = require('../models/TaskShare');
+const { getTaskAccess, can } = require('../services/taskService');
 
 const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
 const DEFAULT_ORDER = { dueDate: 'asc', priority: 'desc', createdAt: 'desc' };
@@ -95,5 +96,29 @@ const listTasks = async (req, res, next) => {
     next(err);
   }
 };
+const getTask = async (req, res, next) => {
+  try {
+    const { task, role } = await getTaskAccess(req.params.id, req.user._id);
 
-module.exports = { createTask, listTasks };
+    // Không có quyền thì trả 404, không để lộ việc công việc có tồn tại
+    if (!task || !can(role, 'view')) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+
+    await task.populate([
+      { path: 'createdBy', select: 'fullName email' },
+      { path: 'assigneeIds', select: 'fullName email' },
+      { path: 'primaryAssigneeId', select: 'fullName email' },
+    ]);
+
+    const shares = await TaskShare.find({ taskId: task._id })
+      .populate('userId', 'fullName email')
+      .lean();
+
+    return res.json({ task, shares, myRole: role });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { createTask, listTasks, getTask };

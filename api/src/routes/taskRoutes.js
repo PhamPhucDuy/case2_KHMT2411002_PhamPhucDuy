@@ -1,6 +1,14 @@
 const express = require('express');
-const { createTask, listTasks } = require('../controllers/taskController');
-const { createTaskRules, listTaskRules } = require('../validators/taskValidator');
+const {
+  createTask,
+  listTasks,
+  getTask,
+} = require('../controllers/taskController');
+const {
+  createTaskRules,
+  listTaskRules,
+  taskIdRules,
+} = require('../validators/taskValidator');
 const validate = require('../middleware/validateMiddleware');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -11,5 +19,6 @@ router.use(protect);
 
 router.get('/', listTaskRules, validate, listTasks);
 router.post('/', createTaskRules, validate, createTask);
+router.get('/:id', taskIdRules, validate, getTask);
 
 module.exports = router;
