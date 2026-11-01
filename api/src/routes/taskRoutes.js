@@ -5,6 +5,7 @@ const {
   getTask,
   updateTask,
   updateTaskStatus,
+  deleteTask,
 } = require('../controllers/taskController');
 const {
   createTaskRules,
@@ -32,5 +33,6 @@ router.patch(
   validate,
   updateTaskStatus
 );
+router.delete('/:id', taskIdRules, validate, deleteTask);
 
 module.exports = router;

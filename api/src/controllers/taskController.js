@@ -181,6 +181,29 @@ const updateTaskStatus = async (req, res, next) => {
     next(err);
   }
 };
+const deleteTask = async (req, res, next) => {
+  try {
+    const { task, role } = await getTaskAccess(req.params.id, req.user._id);
+
+    // Không có quyền xem thì coi như không tồn tại
+    if (!task || !can(role, 'view')) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+    if (!can(role, 'delete')) {
+      return res
+        .status(403)
+        .json({ message: 'Chỉ người tạo mới được xóa công việc' });
+    }
+
+    // Xóa các bản ghi chia sẻ của công việc rồi mới xóa công việc
+    await TaskShare.deleteMany({ taskId: task._id });
+    await task.deleteOne();
+
+    return res.json({ message: 'Xóa công việc thành công' });
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports = {
   createTask,
@@ -188,4 +211,5 @@ module.exports = {
   getTask,
   updateTask,
   updateTaskStatus,
+  deleteTask,
 };
