@@ -1,6 +1,6 @@
 ﻿# Case Study 2 - Task Manager
 
-- MSSV: 2411002
+- MSSV: KHMT2411002
 - Họ tên: Phạm Phúc Duy
 
 ## Cấu trúc
