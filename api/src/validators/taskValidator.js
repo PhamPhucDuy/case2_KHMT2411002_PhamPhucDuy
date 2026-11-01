@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
 
 const createTaskRules = [
   body('title')
@@ -38,4 +38,41 @@ const createTaskRules = [
     .withMessage('Trạng thái phải là todo, in_progress hoặc completed'),
 ];
 
-module.exports = { createTaskRules };
+const listTaskRules = [
+  query('scope')
+    .optional()
+    .isIn(['created', 'assigned', 'shared'])
+    .withMessage('scope phải là created, assigned hoặc shared'),
+
+  query('status')
+    .optional()
+    .isIn(['todo', 'in_progress', 'completed'])
+    .withMessage('status không hợp lệ'),
+
+  query('priority')
+    .optional()
+    .isIn(['low', 'medium', 'high'])
+    .withMessage('priority không hợp lệ'),
+
+  query('q')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Từ khóa tối đa 100 ký tự'),
+
+  query('assigneeId')
+    .optional()
+    .isMongoId()
+    .withMessage('assigneeId không hợp lệ'),
+
+  query('sortBy')
+    .optional()
+    .isIn(['dueDate', 'priority', 'createdAt'])
+    .withMessage('sortBy phải là dueDate, priority hoặc createdAt'),
+
+  query('order')
+    .optional()
+    .isIn(['asc', 'desc'])
+    .withMessage('order phải là asc hoặc desc'),
+];
+module.exports = { createTaskRules, listTaskRules };
