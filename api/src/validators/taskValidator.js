@@ -78,4 +78,36 @@ const listTaskRules = [
 const taskIdRules = [
   param('id').isMongoId().withMessage('Mã công việc không hợp lệ'),
 ];
-module.exports = { createTaskRules, listTaskRules, taskIdRules };
+const updateTaskRules = [
+  body('title')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Tên công việc không được để trống')
+    .isLength({ max: 200 }).withMessage('Tên công việc tối đa 200 ký tự'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Mô tả tối đa 2000 ký tự'),
+
+  body('startDate')
+    .optional({ values: 'falsy' })
+    .isISO8601().withMessage('Ngày bắt đầu không hợp lệ')
+    .toDate(),
+
+  body('dueDate')
+    .optional({ values: 'falsy' })
+    .isISO8601().withMessage('Hạn hoàn thành không hợp lệ')
+    .toDate(),
+
+  body('priority')
+    .optional()
+    .isIn(['low', 'medium', 'high'])
+    .withMessage('Mức độ ưu tiên phải là low, medium hoặc high'),
+];
+module.exports = {
+  createTaskRules,
+  listTaskRules,
+  taskIdRules,
+  updateTaskRules,
+};

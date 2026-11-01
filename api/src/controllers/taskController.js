@@ -120,5 +120,44 @@ const getTask = async (req, res, next) => {
     next(err);
   }
 };
+const updateTask = async (req, res, next) => {
+  try {
+    const { task, role } = await getTaskAccess(req.params.id, req.user._id);
 
-module.exports = { createTask, listTasks, getTask };
+    // Không có quyền xem thì coi như không tồn tại
+    if (!task || !can(role, 'view')) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+    if (!can(role, 'edit')) {
+      return res
+        .status(403)
+        .json({ message: 'Bạn không có quyền chỉnh sửa công việc này' });
+    }
+
+    // Chỉ nhận đúng các trường được phép sửa (không nhận status, createdBy...)
+    const allowed = ['title', 'description', 'startDate', 'dueDate', 'priority'];
+    let changed = false;
+    for (const field of allowed) {
+      if (req.body[field] === undefined) continue;
+      const isDate = field === 'startDate' || field === 'dueDate';
+      task[field] = isDate ? req.body[field] || null : req.body[field];
+      changed = true;
+    }
+
+    if (!changed) {
+      return res.status(400).json({ message: 'Không có thông tin nào để cập nhật' });
+    }
+    if (task.startDate && task.dueDate && task.dueDate < task.startDate) {
+      return res
+        .status(400)
+        .json({ message: 'Hạn hoàn thành phải sau hoặc bằng ngày bắt đầu' });
+    }
+
+    await task.save();
+    return res.json({ message: 'Cập nhật công việc thành công', task });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { createTask, listTasks, getTask, updateTask };

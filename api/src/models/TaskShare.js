@@ -23,7 +23,10 @@ const taskShareSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+    {
+      timestamps: { createdAt: true, updatedAt: false },
+      collection: 'task_shares',
+    }
 );
 
 // Mỗi người chỉ có một bản ghi chia sẻ trên mỗi công việc
