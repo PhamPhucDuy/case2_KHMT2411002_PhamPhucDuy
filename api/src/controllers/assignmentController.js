@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { notifyUsers } = require('../services/notificationService');
+const { onTaskAssigned } = require('../services/taskEventService');
 
 const USER_FIELDS = 'fullName email avatarUrl';
 const sameId = (a, b) => String(a) === String(b);
@@ -62,14 +62,7 @@ const addAssignees = async (req, res, next) => {
     if (added.length > 0 || primaryChanged) await task.save();
 
     if (added.length > 0) {
-      await notifyUsers({
-        userIds: added.map((u) => u._id),
-        taskId: task._id,
-        type: 'task_assigned',
-        title: 'Bạn được giao công việc mới',
-        message: `${req.user.fullName} đã giao cho bạn công việc "${task.title}"`,
-        excludeUserId: req.user._id,
-      });
+      await onTaskAssigned({ task, actor: req.user, users: added });
     }
 
     return res.json({
