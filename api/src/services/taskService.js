@@ -26,6 +26,7 @@ const PERMISSIONS = {
   edit: ['owner', 'editor'],
   changeStatus: ['owner', 'editor', 'assignee'],
   delete: ['owner'],
+  assign: ['owner', 'editor'],
   manageAccess: ['owner'],
 };
 

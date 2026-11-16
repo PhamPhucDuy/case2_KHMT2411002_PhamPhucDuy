@@ -75,9 +75,11 @@ const listTaskRules = [
     .isIn(['asc', 'desc'])
     .withMessage('order phải là asc hoặc desc'),
 ];
+
 const taskIdRules = [
   param('id').isMongoId().withMessage('Mã công việc không hợp lệ'),
 ];
+
 const updateTaskRules = [
   body('title')
     .optional()
@@ -105,15 +107,61 @@ const updateTaskRules = [
     .isIn(['low', 'medium', 'high'])
     .withMessage('Mức độ ưu tiên phải là low, medium hoặc high'),
 ];
+
 const updateStatusRules = [
   body('status')
     .isIn(['todo', 'in_progress', 'completed'])
     .withMessage('Trạng thái phải là todo, in_progress hoặc completed'),
 ];
+
+const assigneeUserIdRules = [
+  param('userId').isMongoId().withMessage('Mã người dùng không hợp lệ'),
+];
+
+const addAssigneeRules = [
+  body('userIds')
+    .optional()
+    .isArray({ max: 20 })
+    .withMessage('userIds phải là mảng tối đa 20 phần tử'),
+  body('userIds.*').isMongoId().withMessage('userId không hợp lệ'),
+
+  body('emails')
+    .optional()
+    .isArray({ max: 20 })
+    .withMessage('emails phải là mảng tối đa 20 phần tử'),
+  body('emails.*').trim().toLowerCase().isEmail().withMessage('Email không hợp lệ'),
+
+  body('primaryAssigneeId')
+    .optional({ values: 'falsy' })
+    .isMongoId()
+    .withMessage('primaryAssigneeId không hợp lệ'),
+
+  body().custom((_, { req }) => {
+    const { userIds, emails } = req.body;
+    const total =
+      (Array.isArray(userIds) ? userIds.length : 0) +
+      (Array.isArray(emails) ? emails.length : 0);
+    if (total === 0) {
+      throw new Error('Cần ít nhất một người để giao việc (userIds hoặc emails)');
+    }
+    return true;
+  }),
+];
+
+const updateAssigneeRules = [
+  body('isPrimary')
+    .isBoolean()
+    .withMessage('isPrimary phải là true hoặc false')
+    .toBoolean(),
+];
+
 module.exports = {
   createTaskRules,
   listTaskRules,
   taskIdRules,
   updateTaskRules,
   updateStatusRules,
+  assigneeUserIdRules,
+  addAssigneeRules,
+  updateAssigneeRules,
 };
