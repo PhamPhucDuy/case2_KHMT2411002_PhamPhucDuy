@@ -11,4 +11,8 @@ const logActivity = async ({ taskId, userId, action, details = {} }) => {
   }
 };
 
-module.exports = { logActivity };
+// Thông tin ngắn gọn về một người dùng để lưu trong chi tiết lịch sử
+const userSnapshot = (u, fallbackId = null) =>
+  u ? { id: u._id, fullName: u.fullName, email: u.email } : { id: fallbackId };
+
+module.exports = { logActivity, userSnapshot };

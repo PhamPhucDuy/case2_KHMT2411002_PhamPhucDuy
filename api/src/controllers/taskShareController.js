@@ -1,6 +1,7 @@
-const User = require('../models/User');
+﻿const User = require('../models/User');
 const TaskShare = require('../models/TaskShare');
 const { onTaskShared } = require('../services/taskEventService');
+const { logActivity, userSnapshot } = require('../services/activityService');
 
 const USER_FIELDS = 'fullName email avatarUrl';
 
@@ -68,6 +69,14 @@ const addShares = async (req, res, next) => {
     }
 
     if (shared.length > 0) {
+      await logActivity({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'share_added',
+        details: {
+          users: shared.map((s) => ({ ...userSnapshot(s.user), permission: s.permission })),
+        },
+      });
       await onTaskShared({
         task,
         actor: req.user,
@@ -99,8 +108,23 @@ const updateShare = async (req, res, next) => {
       return res.status(404).json({ message: 'Không tìm thấy bản ghi chia sẻ' });
     }
 
+    const oldPermission = share.permission;
     share.permission = req.body.permission;
     await share.save();
+
+    if (oldPermission !== share.permission) {
+      const user = await User.findById(share.userId).select(USER_FIELDS).lean();
+      await logActivity({
+        taskId: req.task._id,
+        userId: req.user._id,
+        action: 'share_permission_changed',
+        details: {
+          user: userSnapshot(user, share.userId),
+          from: oldPermission,
+          to: share.permission,
+        },
+      });
+    }
 
     return res.json({ message: 'Cập nhật quyền thành công', share });
   } catch (err) {
@@ -117,6 +141,14 @@ const removeShare = async (req, res, next) => {
     if (!share) {
       return res.status(404).json({ message: 'Không tìm thấy bản ghi chia sẻ' });
     }
+
+    const user = await User.findById(share.userId).select(USER_FIELDS).lean();
+    await logActivity({
+      taskId: req.task._id,
+      userId: req.user._id,
+      action: 'share_revoked',
+      details: { user: userSnapshot(user, share.userId), permission: share.permission },
+    });
 
     return res.json({ message: 'Đã thu hồi quyền chia sẻ' });
   } catch (err) {
