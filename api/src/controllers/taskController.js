@@ -1,7 +1,9 @@
 const Task = require('../models/Task');
 const TaskShare = require('../models/TaskShare');
 const Notification = require('../models/Notification');
+const TaskActivity = require('../models/TaskActivity');
 const { getTaskAccess, can } = require('../services/taskService');
+const { logActivity } = require('../services/activityService');
 const {
   onDueDateChanged,
   onStatusChanged,
@@ -12,6 +14,9 @@ const DEFAULT_ORDER = { dueDate: 'asc', priority: 'desc', createdAt: 'desc' };
 
 // Chống người dùng nhập ký tự đặc biệt của regex vào ô tìm kiếm
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Chuẩn hóa giá trị để so sánh trước/sau khi sửa (ngày so theo mili giây)
+const norm = (v) => (v instanceof Date ? v.getTime() : v ?? null);
 
 const createTask = async (req, res, next) => {
   try {
@@ -25,6 +30,13 @@ const createTask = async (req, res, next) => {
       priority,
       status,
       createdBy: req.user._id, // lấy từ token, không nhận từ client
+    });
+
+    await logActivity({
+      taskId: task._id,
+      userId: req.user._id,
+      action: 'task_created',
+      details: { title: task.title },
     });
 
     return res.status(201).json({ message: 'Tạo công việc thành công', task });
@@ -146,9 +158,11 @@ const updateTask = async (req, res, next) => {
 
     // Chỉ nhận đúng các trường được phép sửa (không nhận status, createdBy...)
     const allowed = ['title', 'description', 'startDate', 'dueDate', 'priority'];
+    const before = {};
     let changed = false;
     for (const field of allowed) {
       if (req.body[field] === undefined) continue;
+      before[field] = task[field];
       const isDate = field === 'startDate' || field === 'dueDate';
       task[field] = isDate ? req.body[field] || null : req.body[field];
       changed = true;
@@ -164,6 +178,22 @@ const updateTask = async (req, res, next) => {
     }
 
     await task.save();
+
+    // Ghi lại những trường thật sự thay đổi (giá trị cũ -> giá trị mới)
+    const changes = {};
+    for (const field of Object.keys(before)) {
+      if (norm(before[field]) !== norm(task[field])) {
+        changes[field] = { from: before[field], to: task[field] };
+      }
+    }
+    if (Object.keys(changes).length > 0) {
+      await logActivity({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'task_updated',
+        details: { changes },
+      });
+    }
 
     const newDue = task.dueDate ? task.dueDate.getTime() : null;
     if (oldDue !== newDue) {
@@ -195,6 +225,12 @@ const updateTaskStatus = async (req, res, next) => {
     await task.save();
 
     if (oldStatus !== task.status) {
+      await logActivity({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'status_changed',
+        details: { from: oldStatus, to: task.status },
+      });
       await onStatusChanged({ task, actor: req.user });
     }
 
@@ -221,6 +257,7 @@ const deleteTask = async (req, res, next) => {
     // Xóa các dữ liệu gắn với công việc rồi mới xóa công việc
     await TaskShare.deleteMany({ taskId: task._id });
     await Notification.deleteMany({ taskId: task._id });
+    await TaskActivity.deleteMany({ taskId: task._id });
     await task.deleteOne();
 
     return res.json({ message: 'Xóa công việc thành công' });
