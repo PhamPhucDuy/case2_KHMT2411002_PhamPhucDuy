@@ -8,6 +8,7 @@ const assignmentRoutes = require('./routes/assignmentRoutes');
 const taskShareRoutes = require('./routes/taskShareRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const { taskEmailLogRouter, emailLogRouter } = require('./routes/emailLogRoutes');
+const statisticsRoutes = require('./routes/statisticsRoutes');
 
 
 const app = express();
@@ -21,6 +22,7 @@ app.use('/api/tasks/:id/assignees', assignmentRoutes);
 app.use('/api/tasks/:id/shares', taskShareRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/email-logs', emailLogRouter);
+app.use('/api/statistics', statisticsRoutes);
 
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
