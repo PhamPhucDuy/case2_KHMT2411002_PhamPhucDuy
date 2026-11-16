@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const TaskShare = require('../models/TaskShare');
+const { onTaskShared } = require('../services/taskEventService');
 
 const USER_FIELDS = 'fullName email avatarUrl';
 
@@ -64,6 +65,15 @@ const addShares = async (req, res, next) => {
         user: toCreate[i],
         permission: d.permission,
       }));
+    }
+
+    if (shared.length > 0) {
+      await onTaskShared({
+        task,
+        actor: req.user,
+        users: shared.map((s) => s.user),
+        permission,
+      });
     }
 
     return res.status(shared.length > 0 ? 201 : 200).json({

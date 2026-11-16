@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { onTaskAssigned } = require('../services/taskEventService');
 
 const USER_FIELDS = 'fullName email avatarUrl';
 const sameId = (a, b) => String(a) === String(b);
@@ -59,6 +60,10 @@ const addAssignees = async (req, res, next) => {
     }
 
     if (added.length > 0 || primaryChanged) await task.save();
+
+    if (added.length > 0) {
+      await onTaskAssigned({ task, actor: req.user, users: added });
+    }
 
     return res.json({
       message:

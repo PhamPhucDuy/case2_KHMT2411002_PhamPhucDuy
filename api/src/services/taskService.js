@@ -32,4 +32,16 @@ const PERMISSIONS = {
 
 const can = (role, action) => PERMISSIONS[action].includes(role);
 
-module.exports = { getTaskAccess, can };
+// Mọi người liên quan đến công việc: người tạo, người được giao, người được chia sẻ
+const getParticipantIds = async (task) => {
+  const shares = await TaskShare.find({ taskId: task._id }).select('userId').lean();
+  return [
+    ...new Set([
+      String(task.createdBy),
+      ...task.assigneeIds.map(String),
+      ...shares.map((s) => String(s.userId)),
+    ]),
+  ];
+};
+
+module.exports = { getTaskAccess, can, getParticipantIds };

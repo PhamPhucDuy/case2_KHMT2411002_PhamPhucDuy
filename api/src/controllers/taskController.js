@@ -1,6 +1,11 @@
 const Task = require('../models/Task');
 const TaskShare = require('../models/TaskShare');
+const Notification = require('../models/Notification');
 const { getTaskAccess, can } = require('../services/taskService');
+const {
+  onDueDateChanged,
+  onStatusChanged,
+} = require('../services/taskEventService');
 
 const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
 const DEFAULT_ORDER = { dueDate: 'asc', priority: 'desc', createdAt: 'desc' };
@@ -96,6 +101,7 @@ const listTasks = async (req, res, next) => {
     next(err);
   }
 };
+
 const getTask = async (req, res, next) => {
   try {
     const { task, role } = await getTaskAccess(req.params.id, req.user._id);
@@ -120,6 +126,7 @@ const getTask = async (req, res, next) => {
     next(err);
   }
 };
+
 const updateTask = async (req, res, next) => {
   try {
     const { task, role } = await getTaskAccess(req.params.id, req.user._id);
@@ -133,6 +140,9 @@ const updateTask = async (req, res, next) => {
         .status(403)
         .json({ message: 'Bạn không có quyền chỉnh sửa công việc này' });
     }
+
+    const oldDue = task.dueDate ? task.dueDate.getTime() : null;
+    const oldDueDate = task.dueDate;
 
     // Chỉ nhận đúng các trường được phép sửa (không nhận status, createdBy...)
     const allowed = ['title', 'description', 'startDate', 'dueDate', 'priority'];
@@ -154,11 +164,18 @@ const updateTask = async (req, res, next) => {
     }
 
     await task.save();
+
+    const newDue = task.dueDate ? task.dueDate.getTime() : null;
+    if (oldDue !== newDue) {
+      await onDueDateChanged({ task, actor: req.user, oldDue: oldDueDate });
+    }
+
     return res.json({ message: 'Cập nhật công việc thành công', task });
   } catch (err) {
     next(err);
   }
 };
+
 const updateTaskStatus = async (req, res, next) => {
   try {
     const { task, role } = await getTaskAccess(req.params.id, req.user._id);
@@ -173,14 +190,20 @@ const updateTaskStatus = async (req, res, next) => {
         .json({ message: 'Bạn không có quyền đổi trạng thái công việc này' });
     }
 
+    const oldStatus = task.status;
     task.status = req.body.status;
     await task.save();
+
+    if (oldStatus !== task.status) {
+      await onStatusChanged({ task, actor: req.user });
+    }
 
     return res.json({ message: 'Cập nhật trạng thái thành công', task });
   } catch (err) {
     next(err);
   }
 };
+
 const deleteTask = async (req, res, next) => {
   try {
     const { task, role } = await getTaskAccess(req.params.id, req.user._id);
@@ -195,8 +218,9 @@ const deleteTask = async (req, res, next) => {
         .json({ message: 'Chỉ người tạo mới được xóa công việc' });
     }
 
-    // Xóa các bản ghi chia sẻ của công việc rồi mới xóa công việc
+    // Xóa các dữ liệu gắn với công việc rồi mới xóa công việc
     await TaskShare.deleteMany({ taskId: task._id });
+    await Notification.deleteMany({ taskId: task._id });
     await task.deleteOne();
 
     return res.json({ message: 'Xóa công việc thành công' });

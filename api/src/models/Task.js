@@ -18,6 +18,8 @@ const taskSchema = new mongoose.Schema(
     },
     startDate: { type: Date, default: null },
     dueDate: { type: Date, default: null },
+        // Hạn mà lần nhắc việc gần nhất đã gửi; đổi hạn thì được nhắc lại
+        reminderSentFor: { type: Date, default: null },
     priority: {
       type: String,
       enum: ['low', 'medium', 'high'],
