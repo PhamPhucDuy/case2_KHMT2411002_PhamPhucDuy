@@ -5,6 +5,7 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
+const taskShareRoutes = require('./routes/taskShareRoutes');
 
 
 const app = express();
@@ -14,6 +15,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks/:id/assignees', assignmentRoutes);
+app.use('/api/tasks/:id/shares', taskShareRoutes);
 
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
