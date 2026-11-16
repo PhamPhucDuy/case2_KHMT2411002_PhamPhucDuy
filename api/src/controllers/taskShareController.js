@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const TaskShare = require('../models/TaskShare');
+const { notifyUsers } = require('../services/notificationService');
 
 const USER_FIELDS = 'fullName email avatarUrl';
 
@@ -64,6 +65,19 @@ const addShares = async (req, res, next) => {
         user: toCreate[i],
         permission: d.permission,
       }));
+    }
+
+    if (shared.length > 0) {
+      await notifyUsers({
+        userIds: shared.map((s) => s.user._id),
+        taskId: task._id,
+        type: 'task_shared',
+        title: 'Có công việc được chia sẻ với bạn',
+        message: `${req.user.fullName} đã chia sẻ công việc "${task.title}" với quyền ${
+          permission === 'editor' ? 'chỉnh sửa' : 'chỉ xem'
+        }`,
+        excludeUserId: req.user._id,
+      });
     }
 
     return res.status(shared.length > 0 ? 201 : 200).json({
