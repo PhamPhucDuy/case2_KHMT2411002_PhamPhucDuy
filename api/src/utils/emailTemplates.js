@@ -81,4 +81,12 @@ const taskCompleted = ({ task, actorName, recipientName }) =>
     task,
   });
 
-module.exports = { taskAssigned, taskShared, dueDateChanged, taskCompleted };
+const dueSoon = ({ task, recipientName }) =>
+  render({
+    subject: `Sắp đến hạn: ${task.title}`,
+    heading: 'Công việc sắp đến hạn',
+    intro: `Xin chào ${recipientName}, công việc sau sẽ đến hạn trong vòng 24 giờ tới.`,
+    task,
+  });
+
+module.exports = { taskAssigned, taskShared, dueDateChanged, taskCompleted, dueSoon };
