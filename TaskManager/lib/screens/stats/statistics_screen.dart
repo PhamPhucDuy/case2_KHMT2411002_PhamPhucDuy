@@ -1,0 +1,212 @@
+import 'package:flutter/material.dart';
+import '../profile/profile_screen.dart';
+import '../notifications/notification_screen.dart';
+import '../tasks/task_list_screen.dart';
+import '../../services/auth_service.dart';
+import '../../services/statistics_service.dart';
+import '../auth/login_screen.dart';
+
+class StatisticsScreen extends StatefulWidget {
+  const StatisticsScreen({super.key});
+  @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  final _service = StatisticsService();
+  late Future<List<Map<String, dynamic>>> _future;
+
+  static const _statusLabels = {
+    'todo': 'Chưa thực hiện',
+    'in_progress': 'Đang thực hiện',
+    'completed': 'Đã hoàn thành',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<Map<String, dynamic>>> _load() => Future.wait([
+        _service.getTaskStats(),
+        _service.getAssignmentStats(),
+        _service.getDeadlineStats(),
+      ]);
+
+  void _reload() => setState(() { _future = _load(); });
+
+  Future<void> _logout() async {
+    await AuthService().logout();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  // Chuyển số / {count: n} / danh sách thành một số nguyên
+  int _count(dynamic v) {
+    if (v is num) return v.toInt();
+    if (v is Map && v['count'] is num) return (v['count'] as num).toInt();
+    if (v is List) return v.length;
+    return 0;
+  }
+
+  Map<String, int> _byStatus(dynamic v) {
+    final r = <String, int>{'todo': 0, 'in_progress': 0, 'completed': 0};
+    if (v is Map) {
+      v.forEach((k, val) => r[k.toString()] = _count(val));
+    } else if (v is List) {
+      for (final e in v) {
+        if (e is Map) {
+          final k = (e['status'] ?? e['_id']).toString();
+          r[k] = _count(e['count'] ?? e);
+        }
+      }
+    }
+    return r;
+  }
+
+  String _date(dynamic d) {
+    final s = d?.toString() ?? '';
+    return s.length >= 10 ? s.substring(0, 10) : s;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Thống kê'),
+        actions: [
+          IconButton(
+            tooltip: 'H\u1ED3 s\u01A1 c\u00E1 nh\u00E2n',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ProfileScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: 'Thông báo',
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const NotificationScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: 'Danh sách công việc',
+            icon: const Icon(Icons.list_alt),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TaskListScreen(),
+                ),
+              );
+              if (mounted) _reload();
+            },
+          ),
+        IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+        IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
+      ]),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('${snap.error}', textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                ElevatedButton(onPressed: _reload, child: const Text('Thử lại')),
+              ]),
+            );
+          }
+          final tasks = snap.data![0];
+          final assign = snap.data![1];
+          final deadline = snap.data![2];
+          final status = _byStatus(tasks['byStatus']);
+          final role = (tasks['byRole'] is Map) ? tasks['byRole'] as Map : {};
+          final overdue = deadline['overdue'];
+          final dueSoon = deadline['dueSoon'];
+
+          return RefreshIndicator(
+            onRefresh: () async => _reload(),
+            child: ListView(padding: const EdgeInsets.all(12), children: [
+              _card('Tổng quan', [
+                _row('Tổng số công việc', _count(tasks['total'])),
+                _row('Đang hoạt động', _count(tasks['active'])),
+              ]),
+              _card('Theo trạng thái', [
+                for (final e in _statusLabels.entries)
+                  _row(e.value, status[e.key] ?? 0),
+              ]),
+              _card('Theo vai trò', [
+                _row('Tôi tạo', _count(role['created'])),
+                _row('Được giao cho tôi', _count(role['assigned'])),
+                _row('Được chia sẻ', _count(role['shared'])),
+              ]),
+              _card('Giao việc', [
+                _row('Được giao cho tôi', _count(assign['assignedToMe'])),
+                _row('Tôi phụ trách chính', _count(assign['primaryAssignee'])),
+                _row('Tôi đã giao cho người khác', _count(assign['assignedByMe'])),
+              ]),
+              _card('Quá hạn', [
+                _row('Số việc quá hạn', _count(overdue), color: Colors.red),
+                ..._taskList(overdue),
+              ]),
+              _card('Sắp đến hạn (${deadline['days'] ?? 3} ngày tới)', [
+                _row('Số việc sắp đến hạn', _count(dueSoon), color: Colors.orange),
+                ..._taskList(dueSoon),
+              ]),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _taskList(dynamic group) {
+    final list = (group is Map && group['tasks'] is List) ? group['tasks'] as List : [];
+    return [
+      for (final t in list)
+        if (t is Map)
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text('${t['title'] ?? ''}'),
+            trailing: Text(_date(t['dueDate'])),
+          ),
+    ];
+  }
+
+  Widget _row(String label, int value, {Color? color}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Expanded(child: Text(label)),
+          Text('$value',
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        ]),
+      );
+
+  Widget _card(String title, List<Widget> children) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Divider(),
+            ...children,
+          ]),
+        ),
+      );
+}
