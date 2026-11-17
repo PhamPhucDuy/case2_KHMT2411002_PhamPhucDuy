@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+const checklistItemSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true, maxlength: 120 },
+  done: { type: Boolean, default: false },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  completedAt: { type: Date, default: null },
+}, { timestamps: true });
 
 const taskSchema = new mongoose.Schema(
   {
@@ -25,6 +32,7 @@ const taskSchema = new mongoose.Schema(
       enum: ['low', 'medium', 'high'],
       default: 'medium',
     },
+    checklist: { type: [checklistItemSchema], default: [] },
     status: {
       type: String,
       enum: ['todo', 'in_progress', 'completed'],

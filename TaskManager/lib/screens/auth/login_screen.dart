@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import '../../widgets/app_theme_toggle_button.dart';
 import '../../services/auth_service.dart';
 import '../stats/statistics_screen.dart';
 import 'register_screen.dart';
@@ -91,6 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task Manager'),
+        actions: const [AppThemeToggleButton()],
       ),
       body: Center(
         child: SingleChildScrollView(

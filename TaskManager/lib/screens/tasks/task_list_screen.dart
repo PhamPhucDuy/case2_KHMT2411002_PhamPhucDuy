@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/task_deadline_badge.dart';
 
 import 'task_search_screen.dart';
 import '../../services/task_service.dart';
@@ -204,6 +205,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         Text('Trạng thái: ${_status(task['status'])}'),
                         Text('Ưu tiên: ${_priority(task['priority'])}'),
                         Text('Hạn: ${_date(task['dueDate'])}'),
+if (TaskDeadline.isOverdue(task))
+  Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: TaskDeadlineBadge(task: task),
+  ),
                       ],
                     ),
                   ),

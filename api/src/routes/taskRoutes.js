@@ -16,11 +16,15 @@ const {
 } = require('../validators/taskValidator');
 const validate = require('../middleware/validateMiddleware');
 const { protect } = require('../middleware/authMiddleware');
+const taskCommentRoutes = require('./taskCommentRoutes');
+const taskChecklistRoutes = require('./taskChecklistRoutes');
 
 const router = express.Router();
 
 // Mọi API công việc đều yêu cầu đăng nhập
 router.use(protect);
+router.use('/:id/comments', taskCommentRoutes);
+router.use('/:id/checklist', taskChecklistRoutes);
 
 router.get('/', listTaskRules, validate, listTasks);
 router.post('/', createTaskRules, validate, createTask);

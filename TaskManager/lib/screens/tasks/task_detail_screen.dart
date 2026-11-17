@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'task_comment_screen.dart';
+import 'task_checklist_screen.dart';
+import '../../widgets/task_deadline_badge.dart';
 import 'task_email_log_screen.dart';
 import 'task_activity_screen.dart';
 import '../sharing/task_sharing_screen.dart';
@@ -362,6 +365,51 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
+            child: ListTile(
+              leading: const Icon(Icons.forum_outlined),
+              title: const Text('B\u00ECnh lu\u1EADn c\u00F4ng vi\u1EC7c'),
+              subtitle: const Text('Trao \u0111\u1ED5i trong nh\u00F3m'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                final taskId = (widget.task['_id'] ?? widget.task['id'])?.toString() ?? '';
+                if (taskId.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Kh\u00F4ng t\u00ECm th\u1EA5y m\u00E3 c\u00F4ng vi\u1EC7c')),
+                  );
+                  return;
+                }
+                Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => TaskCommentScreen(
+                    taskId: taskId,
+                    taskTitle: (widget.task['title'] ?? '').toString(),
+                  ),
+                ));
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.checklist),
+              title: const Text('Checklist c\u00F4ng vi\u1EC7c'),
+              subtitle: const Text('Xem c\u00E1c b\u01B0\u1EDBc v\u00E0 ti\u1EBFn \u0111\u1ED9'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                final id = (widget.task['_id'] ?? widget.task['id'])?.toString();
+                if (id == null || id.isEmpty) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => TaskChecklistScreen(
+                      taskId: id,
+                      taskTitle: title,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -403,6 +451,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     _formatDate(task['dueDate']),
                     Icons.event_busy_outlined,
                   ),
+if (TaskDeadline.isOverdue(task))
+  Padding(
+    padding: const EdgeInsets.only(
+      top: 10,
+      bottom: 2,
+    ),
+    child: TaskDeadlineBadge(task: task),
+  ),
+
                 ],
               ),
             ),
